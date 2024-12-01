@@ -23,14 +23,27 @@ type {{ .TypeName }} struct {
 }
 	{{- end }}`
 
-const TmplForRequest string = `{{- range . }}
+const TmplForRequest string = `
 
-func Do{{ .RequestTypeName }}Request(data {{ .RequestTypeName }}) (*http.Request, error) {
+func doRequest[T BaseTypeInterface](data T, path string) (*http.Request, error) {
 	rData, err := data.ToReader()
 	if err != nil {
 		return nil, err
 	}
-	return http.NewRequest("POST", "{{ .Path }}", rData)
+	req, err := http.NewRequest("POST", path, rData)
+	if err != nil {
+		return nil, err
+	}
+	
+	req.Header.Set("User-Agent", "{{ .UserAgent }}")
+	
+	return req, nil
+}
+
+{{- range .Posts }}
+
+func Do{{ .RequestTypeName }}Request(data {{ .RequestTypeName }}) (*http.Request, error) {
+	return doRequest(data, "{{ .Path }}")
 }
 	{{- end }}
 	`
@@ -44,9 +57,13 @@ import (
 	"io"
 )
 
+type BaseTypeInterface interface {
+	ToReader() (io.Reader, error)
+}
+
 type BaseType struct {}
 
-func (base *BaseType) ToReader() (io.Reader, error) {
+func (base BaseType) ToReader() (io.Reader, error) {
 	data, err := json.Marshal(base)
 	if err != nil {
 		return nil, err

@@ -11,6 +11,7 @@ type Generator struct {
 	Posts        []PostRPC
 	RootPath     string
 	BaseUrl      string
+	ClientID     string
 }
 
 func NewGeneartor(url string, rootPath string, clientId string) *Generator {
@@ -39,6 +40,7 @@ func NewGeneartor(url string, rootPath string, clientId string) *Generator {
 		Posts:        posts,
 		RootPath:     rootPath,
 		BaseUrl:      baseUrl,
+		ClientID:     clientId,
 	}
 }
 
@@ -51,7 +53,15 @@ func (gen Generator) GenerateTypes() error {
 }
 
 func (gen Generator) GenerateRequests() error {
-	posts, err := GetDataToWrite(gen.Posts, TmplForRequest)
+	type WriteContext struct {
+		UserAgent string
+		Posts     []PostRPC
+	}
+
+	posts, err := GetDataToWrite(WriteContext{
+		UserAgent: gen.ClientID,
+		Posts:     gen.Posts,
+	}, TmplForRequest)
 	if err != nil {
 		return err
 	}
